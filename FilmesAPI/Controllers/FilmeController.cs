@@ -1,4 +1,6 @@
-﻿using FilmesAPI.Data;
+﻿using AutoMapper;
+using FilmesAPI.Data;
+using FilmesAPI.Data.DTOs;
 using FilmesAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -14,15 +16,20 @@ namespace FilmesAPI.Controllers
     {
 
         private FilmeContext _context;
+        private IMapper _mapper;
 
-        public FilmeController(FilmeContext context)
+        public FilmeController(FilmeContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         [HttpPost]
-        public IActionResult AdicionaFilme([FromBody] Filme filme)
+        public IActionResult AdicionaFilme([FromBody] CreateFilmDTO filmeDto)
         {
+
+            Filme filme = _mapper.Map<Filme>(filmeDto);
+
             _context.Filmes.Add(filme);
             _context.SaveChanges();
             return CreatedAtAction(nameof(RecuperaFilmesPorId), new { Id = filme.Id }, filme);
@@ -41,13 +48,15 @@ namespace FilmesAPI.Controllers
 
             if (filme != null)
             {
-                return Ok(filme);
+                ReadFilmDTO readFilmDTO = _mapper.Map<ReadFilmDTO>(filme);
+                readFilmDTO.HoraConsulta = DateTime.Now;
+                return Ok(readFilmDTO);
             }
             return NotFound();
         }
 
         [HttpPut("{id}")]
-        public IActionResult AtualizaFilme(int id, [FromBody] Filme filmeAtualizado) 
+        public IActionResult AtualizaFilme(int id, [FromBody] UpdateFilmDTO filmeAtualizado) 
         {
             Filme filme = _context.Filmes.FirstOrDefault(filme => filme.Id == id);
             
@@ -56,10 +65,7 @@ namespace FilmesAPI.Controllers
                 return NotFound();
             }
 
-            filme.Titulo = filmeAtualizado.Titulo;
-            filme.Diretor = filmeAtualizado.Diretor;
-            filme.Genero = filmeAtualizado.Genero;
-            filme.Duracao = filmeAtualizado.Duracao;            
+            _mapper.Map(filmeAtualizado, filme);          
             
             _context.SaveChanges();
             return NoContent();
@@ -76,8 +82,6 @@ namespace FilmesAPI.Controllers
                 return NoContent();
             }
             return NotFound();
-
         }
-
     }
 }
